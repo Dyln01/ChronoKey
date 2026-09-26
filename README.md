@@ -1,16 +1,15 @@
-# MCP Worker
+$content = @'
+# ChronoKey
 
-A paid MCP (Model Context Protocol) server running on Cloudflare Workers, with x402 micropayments settled in USDC.
+Reliable timestamps and UUIDs for AI agents, with x402 USDC settlement.
 
-## What This Does
+## What This Is
 
-This Worker exposes MCP tools over Streamable HTTP. One tool is free (`health`), one requires payment (`lookup`). Payment is handled via the x402 protocol — a machine-native payment standard that uses the HTTP `402 Payment Required` status code.
-
-Any MCP-compatible client (Claude Desktop, Cursor, or a custom agent) can connect and call the tools. Paid tools follow the standard x402 handshake: send the request, receive a 402 with payment details, settle USDC on-chain, retry with proof of payment.
+ChronoKey is a paid MCP server running on Cloudflare Workers. It provides two utility tools that AI agents need on nearly every run: reliable time context and unique identifier generation. Payment is handled via the x402 protocol — a machine-native payment standard using the HTTP `402 Payment Required` status code.
 
 ## Endpoint
 
-https://cloudflare-mcp-worker.dylanrenovos.workers.dev/mcp
+    https://cloudflare-mcp-worker.dylanrenovos.workers.dev/mcp
 
 - Transport: Streamable HTTP
 - Method: POST
@@ -23,32 +22,53 @@ https://cloudflare-mcp-worker.dylanrenovos.workers.dev/mcp
 
 Returns "OK". Use it to verify the server is reachable.
 
-curl -X POST https://cloudflare-mcp-worker.dylanrenovos.workers.dev/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"health","arguments":{}}}'
+### timestamp ($0.001 USDC)
 
-### lookup (paid - $0.02 USDC)
+Returns the current time in multiple formats.
 
-Returns a record for a given ID.
+Input: { "timezone": "America/New_York" }
 
-Input: { "id": "string" }
+timezone is optional (IANA name). Defaults to UTC.
 
-Example call:
+Output:
 
-curl -X POST https://cloudflare-mcp-worker.dylanrenovos.workers.dev/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"lookup","arguments":{"id":"test-123"}}}'
+    {
+      "iso8601": "2026-09-26T15:30:00.000Z",
+      "unixSeconds": 1790427000,
+      "unixMilliseconds": 1790427000000,
+      "timezone": "America/New_York",
+      "humanReadable": "Friday, September 26, 2026 at 11:30:00 AM EDT"
+    }
+
+### uuid ($0.001 USDC)
+
+Generates 1-100 UUIDs.
+
+Input: { "count": 5, "version": "v7" }
+
+- count (optional): 1-100, defaults to 1
+- version (optional): "v4" (random) or "v7" (time-ordered), defaults to "v4"
+
+Output:
+
+    {
+      "version": "v7",
+      "count": 5,
+      "uuids": [
+        "018f3c8a-1e2b-7c4d-8f1a-2b3c4d5e6f70",
+        "..."
+      ]
+    }
 
 ## Pricing
 
 | Tool | Price | Currency |
 |------|-------|----------|
 | health | Free | - |
-| lookup | $0.02 | USDC |
+| timestamp | $0.001 | USDC |
+| uuid | $0.001 | USDC |
 
-## Supported Payment Networks
+## Supported Networks
 
 | Network | CAIP-2 | USDC Contract |
 |---------|--------|---------------|
@@ -61,36 +81,55 @@ All three settle to: 0xAb59e91c7A4e280914681FA8eA2015f2e1826b4f
 ## How x402 Payment Works
 
 1. Send the request without payment.
-2. Receive a 402 response with a PAYMENT-REQUIRED header.
-3. Sign a USDC transfer (gasless, EIP-3009).
-4. Retry the request with the X-PAYMENT header.
-5. Receive the tool result once settled.
+2. Receive a 402 with a PAYMENT-REQUIRED header. Decode (Base64) to see the accepts[] array.
+3. Sign a USDC transferWithAuthorization (EIP-3009). Gasless - the facilitator pays the gas.
+4. Retry with the X-PAYMENT header.
+5. Receive the tool result once the facilitator verifies and settles.
 
 x402 clients handle steps 2-4 automatically.
 
 ## Discovery
 
 - /.well-known/x402 - discovery manifest
-- /openapi.json - OpenAPI 3.1 spec with x-payment-info
+- /.well-known/mcp-pricing - tool pricing
+- /openapi.json - OpenAPI 3.1 spec
+- /llms.txt - plain-text summary for agent frameworks
 
 ## Connecting an MCP Client
 
 Claude Desktop / Cursor config:
 
-{
-  "mcpServers": {
-    "cloudflare-mcp-worker": {
-      "url": "https://cloudflare-mcp-worker.dylanrenovos.workers.dev/mcp"
+    {
+      "mcpServers": {
+        "chronokey": {
+          "url": "https://cloudflare-mcp-worker.dylanrenovos.workers.dev/mcp"
+        }
+      }
     }
-  }
-}
 
 ## Local Development
 
-npm install
-npx wrangler dev
-npx wrangler tail
-npx wrangler deploy
+    npm install
+    npx wrangler dev
+    npx wrangler tail
+    npx wrangler deploy
+
+## Project Structure
+
+    .
+    ├── src/
+    │   └── index.ts
+    ├── public/
+    │   ├── favicon.ico
+    │   ├── llms.txt
+    │   ├── openapi.json
+    │   └── .well-known/
+    │       ├── x402
+    │       └── mcp-pricing
+    ├── package.json
+    ├── package-lock.json
+    ├── tsconfig.json
+    └── wrangler.jsonc
 
 ## Stack
 
@@ -103,4 +142,7 @@ npx wrangler deploy
 ## License
 
 MIT
-'@ | Out-File -FilePath README.md -Encoding utf8
+'@
+
+$content | Out-File -FilePath README.md -Encoding utf8
+Write-Host "README.md created at $(Get-Location)\README.md"
