@@ -1,10 +1,10 @@
 # ChronoKey
 
-Reliable timestamps and UUIDs for AI agents, with x402 USDC settlement.
+Timestamps, UUIDs, and text-to-structure extraction for AI agents, with x402 USDC settlement.
 
 ## What This Is
 
-ChronoKey is a hosted MCP server that provides two utility tools AI agents need on nearly every run: reliable time context and unique identifier generation. Payment is handled via the x402 protocol — a machine-native payment standard using the HTTP `402 Payment Required` status code. Any MCP-compatible client can connect and call the tools. Paid tools follow the standard x402 handshake: send the request, receive a 402 with payment details, settle USDC on-chain, retry with proof of payment.
+ChronoKey is a hosted MCP server that provides three utility tools AI agents need on nearly every run: reliable time context, unique identifier generation, and deterministic text-to-structure extraction. Payment is handled via the x402 protocol — a machine-native payment standard using the HTTP `402 Payment Required` status code. Any MCP-compatible client can connect and call the tools.
 
 ## Endpoint
 
@@ -59,6 +59,48 @@ Output:
       ]
     }
 
+### text.structure ($0.008 USDC)
+
+Extracts structured entities from unstructured text and returns a strict, stable JSON schema.
+
+Input: { "text": "Contact alice@example.com on 2026-09-26 about the $42 invoice. See https://example.com for details. #finance @team" }
+
+Output:
+
+    {
+      "emails": ["alice@example.com"],
+      "urls": ["https://example.com"],
+      "phones": [],
+      "dates": ["2026-09-26"],
+      "numbers": [
+        { "raw": "42", "value": 42, "type": "integer", "negative": false }
+      ],
+      "ipAddresses": [],
+      "hashes": [],
+      "mentions": ["@team"],
+      "hashtags": ["#finance"],
+      "stats": {
+        "wordCount": 15,
+        "charCount": 118,
+        "lineCount": 1
+      }
+    }
+
+The output schema is deterministic and stable. Every field is always present — empty arrays when nothing matches. There are no external API calls, no LLM, and no rate limits. Input is capped at 20,000 characters.
+
+Fields extracted:
+
+- emails — deduplicated
+- urls — http/https, trailing punctuation stripped
+- phones — international and US formats
+- dates — ISO 8601, with optional time component
+- numbers — with type (integer/decimal), raw value, and sign
+- ipAddresses — IPv4
+- hashes — classified by length (md5/sha1/sha256)
+- mentions — @handles
+- hashtags — #tags
+- stats — word count, char count, line count
+
 ## Pricing
 
 | Tool | Price | Currency |
@@ -66,6 +108,7 @@ Output:
 | health | Free | - |
 | timestamp | $0.001 | USDC |
 | uuid | $0.001 | USDC |
+| text.structure | $0.008 | USDC |
 
 ## Supported Networks
 
@@ -91,6 +134,7 @@ x402 clients handle steps 2-4 automatically.
 
 - /.well-known/x402 — discovery manifest
 - /.well-known/mcp-pricing — tool pricing
+- /.well-known/mcp/server-card.json — Smithery server card
 - /openapi.json — OpenAPI 3.1 spec
 - /llms.txt — plain-text summary for agent frameworks
 
@@ -113,7 +157,3 @@ For questions, issues, or custom integrations, contact the maintainer.
 ## Terms
 
 ChronoKey is a proprietary hosted service. All rights reserved.
-'@
-
-$content | Out-File -FilePath README.md -Encoding utf8
-Write-Host "README.md created at $(Get-Location)\README.md"
