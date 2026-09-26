@@ -1,10 +1,11 @@
+$content = @'
 # ChronoKey
 
 Reliable timestamps and UUIDs for AI agents, with x402 USDC settlement.
 
 ## What This Is
 
-ChronoKey is a paid MCP server running on Cloudflare Workers. It provides two utility tools that AI agents need on nearly every run: reliable time context and unique identifier generation. Payment is handled via the x402 protocol — a machine-native payment standard using the HTTP `402 Payment Required` status code.
+ChronoKey is a hosted MCP server that provides two utility tools AI agents need on nearly every run: reliable time context and unique identifier generation. Payment is handled via the x402 protocol — a machine-native payment standard using the HTTP `402 Payment Required` status code. Any MCP-compatible client can connect and call the tools. Paid tools follow the standard x402 handshake: send the request, receive a 402 with payment details, settle USDC on-chain, retry with proof of payment.
 
 ## Endpoint
 
@@ -80,8 +81,8 @@ All three settle to: 0xAb59e91c7A4e280914681FA8eA2015f2e1826b4f
 ## How x402 Payment Works
 
 1. Send the request without payment.
-2. Receive a 402 with a PAYMENT-REQUIRED header. Decode (Base64) to see the accepts[] array.
-3. Sign a USDC transferWithAuthorization (EIP-3009). Gasless - the facilitator pays the gas.
+2. Receive a 402 with a PAYMENT-REQUIRED header. Decode (Base64) to see the accepts[] array — one entry per supported network.
+3. Sign a USDC transferWithAuthorization (EIP-3009). Gasless — the facilitator pays the gas.
 4. Retry with the X-PAYMENT header.
 5. Receive the tool result once the facilitator verifies and settles.
 
@@ -89,10 +90,10 @@ x402 clients handle steps 2-4 automatically.
 
 ## Discovery
 
-- /.well-known/x402 - discovery manifest
-- /.well-known/mcp-pricing - tool pricing
-- /openapi.json - OpenAPI 3.1 spec
-- /llms.txt - plain-text summary for agent frameworks
+- /.well-known/x402 — discovery manifest
+- /.well-known/mcp-pricing — tool pricing
+- /openapi.json — OpenAPI 3.1 spec
+- /llms.txt — plain-text summary for agent frameworks
 
 ## Connecting an MCP Client
 
@@ -106,41 +107,13 @@ Claude Desktop / Cursor config:
       }
     }
 
-## Local Development
+## Support
 
-    npm install
-    npx wrangler dev
-    npx wrangler tail
-    npx wrangler deploy
+For questions, issues, or custom integrations, contact the maintainer.
 
-## Project Structure
+## Terms
 
-    .
-    ├── src/
-    │   └── index.ts
-    ├── public/
-    │   ├── favicon.ico
-    │   ├── llms.txt
-    │   ├── openapi.json
-    │   └── .well-known/
-    │       ├── x402
-    │       └── mcp-pricing
-    ├── package.json
-    ├── package-lock.json
-    ├── tsconfig.json
-    └── wrangler.jsonc
-
-## Stack
-
-- Cloudflare Workers
-- Cloudflare Agents SDK
-- x402 protocol
-- Coinbase CDP Facilitator
-- Model Context Protocol
-
-## License
-
-MIT
+ChronoKey is a proprietary hosted service. All rights reserved.
 '@
 
 $content | Out-File -FilePath README.md -Encoding utf8
