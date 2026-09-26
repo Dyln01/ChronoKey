@@ -1,4 +1,3 @@
-$content = @'
 # ChronoKey
 
 Reliable timestamps and UUIDs for AI agents, with x402 USDC settlement.
