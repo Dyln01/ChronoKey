@@ -1,10 +1,10 @@
 # ChronoKey
 
-Timestamps, UUIDs, and text-to-structure extraction for AI agents, with x402 USDC settlement.
+Timestamps, UUIDs, and text-to-structure extraction for AI agents, with x402 and MPP payment support.
 
 ## What This Is
 
-ChronoKey is a hosted MCP server that provides three utility tools AI agents need on nearly every run: reliable time context, unique identifier generation, and deterministic text-to-structure extraction. Payment is handled via the x402 protocol — a machine-native payment standard using the HTTP `402 Payment Required` status code. Any MCP-compatible client can connect and call the tools.
+ChronoKey is a hosted MCP server that provides three utility tools AI agents need on nearly every run: reliable time context, unique identifier generation, and deterministic text-to-structure extraction. Payment is handled via x402 (USDC on Base, Polygon, or Arbitrum) or MPP (pathUSD on Tempo). Any MCP-compatible client can connect and call the tools.
 
 ## Endpoint
 
@@ -21,7 +21,7 @@ ChronoKey is a hosted MCP server that provides three utility tools AI agents nee
 
 Returns "OK". Use it to verify the server is reachable.
 
-### timestamp ($0.001 USDC)
+### timestamp ($0.001 USD)
 
 Returns the current time in multiple formats.
 
@@ -39,7 +39,7 @@ Output:
       "humanReadable": "Friday, September 26, 2026 at 11:30:00 AM EDT"
     }
 
-### uuid ($0.001 USDC)
+### uuid ($0.001 USD)
 
 Generates 1-100 UUIDs.
 
@@ -59,7 +59,7 @@ Output:
       ]
     }
 
-### text.structure ($0.008 USDC)
+### text.structure ($0.008 USD)
 
 Extracts structured entities from unstructured text and returns a strict, stable JSON schema.
 
@@ -106,29 +106,31 @@ Fields extracted:
 | Tool | Price | Currency |
 |------|-------|----------|
 | health | Free | - |
-| timestamp | $0.001 | USDC |
-| uuid | $0.001 | USDC |
-| text.structure | $0.008 | USDC |
+| timestamp | $0.001 | USD |
+| uuid | $0.001 | USD |
+| text.structure | $0.008 | USD |
 
-## Supported Networks
+## Supported Payment Protocols
 
-| Network | CAIP-2 | USDC Contract |
-|---------|--------|---------------|
-| Base | eip155:8453 | 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 |
-| Polygon PoS | eip155:137 | 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359 |
-| Arbitrum One | eip155:42161 | 0xaf88d065e77c8cC2239327C5EDb3A432268e5831 |
+### x402
 
-All three settle to: 0xAb59e91c7A4e280914681FA8eA2015f2e1826b4f
+USDC on Base (eip155:8453), Polygon (eip155:137), or Arbitrum (eip155:42161).
 
-## How x402 Payment Works
+### MPP
+
+pathUSD on Tempo.
+
+Both protocols are advertised on the same 402 response. The client picks one.
+
+## How Payment Works
 
 1. Send the request without payment.
-2. Receive a 402 with a PAYMENT-REQUIRED header. Decode (Base64) to see the accepts[] array — one entry per supported network.
-3. Sign a USDC transferWithAuthorization (EIP-3009). Gasless — the facilitator pays the gas.
-4. Retry with the X-PAYMENT header.
-5. Receive the tool result once the facilitator verifies and settles.
+2. Receive a 402 with both an x402 challenge (PAYMENT-REQUIRED header) and an MPP challenge (WWW-Authenticate header).
+3. Sign a payment authorization using either protocol.
+4. Retry with the credential.
+5. Receive the tool result once the payment is verified and settled.
 
-x402 clients handle steps 2-4 automatically.
+Payment clients handle steps 2-4 automatically.
 
 ## Discovery
 
