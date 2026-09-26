@@ -1,4 +1,3 @@
-@'
 # MCP Worker
 
 A paid MCP (Model Context Protocol) server running on Cloudflare Workers, with x402 micropayments settled in USDC.
