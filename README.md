@@ -4,7 +4,7 @@
 
 # ChronoKey
 
-Reliable timestamps, UUIDs, gas prices, agent memory, and text-to-structure extraction for AI agents. Paid via x402 or MPP.
+Timestamps, UUIDs, gas prices, domain intelligence, agent memory, and text-to-structure extraction for AI agents. Paid via x402 or MPP.
 
 [View full pricing](https://cloudflare-mcp-worker.dylanrenovos.workers.dev/.well-known/mcp-pricing) · [Live stats](https://cloudflare-mcp-worker.dylanrenovos.workers.dev/stats)
 
@@ -14,7 +14,7 @@ Reliable timestamps, UUIDs, gas prices, agent memory, and text-to-structure extr
 
 ## What This Is
 
-ChronoKey is a hosted MCP server that provides 14 utility tools AI agents need on nearly every run. Payment is handled via the x402 protocol (USDC on Base, Polygon, or Arbitrum) or MPP (pathUSD on Tempo). Any MCP-compatible client can connect and call the tools.
+ChronoKey is a hosted MCP server that provides 15 utility tools AI agents need on nearly every run. Payment is handled via the x402 protocol (USDC on Base, Polygon, or Arbitrum) or MPP (pathUSD on Tempo). Any MCP-compatible client can connect and call the tools.
 
 ## Endpoint
 
@@ -186,6 +186,82 @@ Output:
 
 Pricing: Pro-covered or $0.003 USD.
 
+### domain.intel
+
+One call returns WHOIS, DNS, and SSL certificate data for any domain. Aggregates RDAP, Cloudflare DNS-over-HTTPS, and Certificate Transparency logs.
+
+Input:
+
+    {
+      "domain": "example.com",
+      "records": ["A", "AAAA", "MX", "TXT", "NS", "CNAME", "SOA"],
+      "include_ssl": true,
+      "include_whois": true
+    }
+
+- domain (required): domain name to query
+- records (optional): DNS record types to fetch. Defaults to all seven.
+- include_ssl (optional): fetch SSL certificate history. Defaults to true.
+- include_whois (optional): fetch WHOIS via RDAP. Defaults to true.
+
+Output:
+
+    {
+      "domain": "example.com",
+      "queriedAt": "2026-09-27T09:30:00.000Z",
+      "dns": {
+        "A": ["93.184.216.34"],
+        "AAAA": ["2606:2800:220:1:248:1893:25c8:1946"],
+        "MX": [{ "priority": 0, "exchange": "." }],
+        "TXT": ["v=spf1 -all"],
+        "NS": ["a.iana-servers.net", "b.iana-servers.net"],
+        "SOA": { "mname": "a.iana-servers.net", "rname": "hostmaster.iana.org", "serial": 2026, "refresh": 3600, "retry": 600, "expire": 604800, "minimum": 300 }
+      },
+      "whois": {
+        "registrar": "RESERVED-Internet Assigned Numbers Authority",
+        "created": "1995-08-14T04:00:00Z",
+        "expires": "2026-08-13T04:00:00Z",
+        "updated": "2025-08-14T07:01:38Z",
+        "status": ["clientDeleteProhibited", "clientTransferProhibited"],
+        "nameservers": ["a.iana-servers.net", "b.iana-servers.net"],
+        "dnssec": true
+      },
+      "ssl": {
+        "certificates": [
+          {
+            "issuer": "DigiCert Inc",
+            "commonName": "www.example.org",
+            "notBefore": "2025-01-15T00:00:00Z",
+            "notAfter": "2026-02-15T23:59:59Z",
+            "san": ["www.example.org", "example.com", "example.net"],
+            "serialNumber": "..."
+          }
+        ],
+        "latestExpiry": "2026-02-15T23:59:59Z",
+        "issuerCounts": { "DigiCert Inc": 4, "Let's Encrypt": 1 }
+      },
+      "summary": {
+        "hasDns": true,
+        "hasWhois": true,
+        "hasSsl": true,
+        "daysUntilDomainExpiry": 320,
+        "daysUntilCertExpiry": 141,
+        "dnssecEnabled": true,
+        "emailSecurity": { "spf": true, "dmarc": false, "dkim": false },
+        "warnings": []
+      }
+    }
+
+Pricing: Pro-covered or $0.005 USD.
+
+Upstream sources:
+
+- DNS via Cloudflare DNS-over-HTTPS (`cloudflare-dns.com/dns-query`), with Google DoH (`dns.google/resolve`) as fallback
+- WHOIS via RDAP through the `rdap.org` IANA bootstrap service
+- SSL via Certificate Transparency logs through `crt.sh`
+
+Partial failures are reported in `summary.warnings` — for example `["whois_unavailable"]` or `["ssl_ct_log_too_large"]`. The response is still returned with whatever data was successfully gathered.
+
 ### memory.store
 
 Stores a value under a namespaced key. Namespaces are isolated — two callers using different namespaces never see each other's data.
@@ -252,6 +328,7 @@ Covered tools:
 - uuid
 - text.structure (standard mode only)
 - gas.price
+- domain.intel
 - memory.store
 - memory.recall
 
@@ -278,7 +355,7 @@ Output:
       "plan": "pro",
       "expiresAt": "2026-10-27T09:30:00.000Z",
       "daysRemaining": 28,
-      "coveredTools": ["timestamp", "uuid", "text.structure", "gas.price", "memory.store", "memory.recall"]
+      "coveredTools": ["timestamp", "uuid", "text.structure", "gas.price", "domain.intel", "memory.store", "memory.recall"]
     }
 
 Pricing: Free.
@@ -299,6 +376,7 @@ Pricing: Free.
 | extract.confirm (accurate) | $0.010 | no | - |
 | extract.confirm (inaccurate) | Free | - | - |
 | gas.price | $0.003 | yes | - |
+| domain.intel | $0.005 | yes | - |
 | memory.store | $0.005 | yes | - |
 | memory.recall | $0.005 | yes | - |
 | memory.search | $0.010 | no | - |
@@ -311,7 +389,7 @@ The first 10 calls per day per MCP session are free for timestamp and uuid. No p
 
 ## Pro Subscription
 
-$5.00 USD for 30 days. Covers timestamp, uuid, text.structure (standard mode), gas.price, memory.store, and memory.recall. Reuse the same MCP session across calls to benefit from the subscription. Active subscriptions are signaled via the X-Subscription-Active and X-Subscription-Expires response headers.
+$5.00 USD for 30 days. Covers timestamp, uuid, text.structure (standard mode), gas.price, domain.intel, memory.store, and memory.recall. Reuse the same MCP session across calls to benefit from the subscription. Active subscriptions are signaled via the X-Subscription-Active and X-Subscription-Expires response headers.
 
 ## Supported Payment Protocols
 
@@ -334,6 +412,24 @@ Both protocols are advertised on the same 402 response. The client picks one.
 5. Receive the tool result once the payment is verified and settled.
 
 Payment clients handle steps 2-4 automatically.
+
+## Domain Intelligence
+
+domain.intel aggregates three free, keyless upstream sources:
+
+- DNS via Cloudflare DNS-over-HTTPS, with Google DoH as a fallback
+- WHOIS via RDAP through the IANA bootstrap service at rdap.org
+- SSL certificate history via Certificate Transparency logs at crt.sh
+
+The tool returns partial data with a `summary.warnings` array when one of the upstreams fails. Warnings you may encounter:
+
+| Warning | Cause |
+|---|---|
+| whois_unavailable | RDAP bootstrap down or TLD not supported |
+| ssl_ct_log_unavailable | crt.sh unreachable or returned non-JSON |
+| ssl_ct_log_too_large | Domain has too many certificates (response cap hit) |
+| ssl_ct_log_parse_error | crt.sh returned malformed JSON |
+| dns_no_records | Domain has no A, AAAA, MX, TXT, NS, CNAME, or SOA records |
 
 ## Memory Namespaces
 
@@ -380,19 +476,19 @@ Enter the endpoint URL and click Connect. The Inspector handles the initialize h
 
 ## Example: Full Workflow
 
-An agent checking gas prices before a transaction, storing a memory, and extracting structured data:
+An agent checking a domain's trust signals, then checking gas prices before a transaction:
 
-    // 1. Check gas
-    { "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": { "name": "gas.price", "arguments": { "chains": ["eip155:8453"] } } }
+    // 1. Domain intelligence
+    { "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": { "name": "domain.intel", "arguments": { "domain": "example.com" } } }
 
-    // 2. Store the decision
-    { "jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": { "name": "memory.store", "arguments": { "namespace": "agent-0xAb59", "key": "last_gas_check", "value": "Base standard 0.0198 gwei at 2026-09-27T09:30:00Z" } } }
+    // 2. Check gas before transacting
+    { "jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": { "name": "gas.price", "arguments": { "chains": ["eip155:8453"] } } }
 
-    // 3. Recall it later
-    { "jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": { "name": "memory.recall", "arguments": { "namespace": "agent-0xAb59", "key": "last_gas_check" } } }
+    // 3. Store the decision
+    { "jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": { "name": "memory.store", "arguments": { "namespace": "agent-0xAb59", "key": "last_domain_check", "value": "example.com: dnssec=true, spf=true, cert expires 2026-02-15" } } }
 
     // 4. Search for related context
-    { "jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": { "name": "memory.search", "arguments": { "namespace": "agent-0xAb59", "query": "gas check base" } } }
+    { "jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": { "name": "memory.search", "arguments": { "namespace": "agent-0xAb59", "query": "domain dnssec" } } }
 
 ## Support
 
