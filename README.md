@@ -1,12 +1,20 @@
+<div align="center">
+
+<img src="logo.png" alt="ChronoKey logo" width="160" />
+
 # ChronoKey
 
 Reliable timestamps, UUIDs, gas prices, agent memory, and text-to-structure extraction for AI agents. Paid via x402 or MPP.
 
+[View full pricing](https://cloudflare-mcp-worker.dylanrenovos.workers.dev/.well-known/mcp-pricing) · [Live stats](https://cloudflare-mcp-worker.dylanrenovos.workers.dev/stats)
+
+</div>
+
+---
+
 ## What This Is
 
 ChronoKey is a hosted MCP server that provides 14 utility tools AI agents need on nearly every run. Payment is handled via the x402 protocol (USDC on Base, Polygon, or Arbitrum) or MPP (pathUSD on Tempo). Any MCP-compatible client can connect and call the tools.
-
-[View full pricing](https://cloudflare-mcp-worker.dylanrenovos.workers.dev/.well-known/mcp-pricing) · [Live stats](https://cloudflare-mcp-worker.dylanrenovos.workers.dev/stats)
 
 ## Endpoint
 
