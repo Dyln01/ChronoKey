@@ -194,3 +194,5 @@ For questions, issues, or custom integrations, contact the maintainer.
 ## Terms
 
 ChronoKey is a proprietary hosted service. All rights reserved.
+
+[![bot.chronokey.workers.dev on the Neuronto ARD Registry](https://neuronto.com/badge/bot.chronokey.workers.dev.svg)](https://neuronto.com/ard-publishers/bot.chronokey.workers.dev)
